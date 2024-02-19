@@ -1,5 +1,16 @@
-var builder = WebApplication.CreateBuilder(args);
+using LabraryApi.DataSchemas;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection(MongoDbSettings.ConnName));
+builder.Services.AddSingleton<IMongoDatabase>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
+    var client = new MongoClient(settings.ConnectionString);
+    return client.GetDatabase(settings.DatabaseName);
+});
 // Add services to the container.
 
 builder.Services.AddControllers();
