@@ -2,6 +2,7 @@ using LabraryApi.Classes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Reactive.Linq;
 
 namespace LabraryApi.Controllers {
     [ApiController]
@@ -47,8 +48,8 @@ namespace LabraryApi.Controllers {
     }
 
     internal interface IuserRepository {
-        Task<List<UserDTO>> GetUsers();
-        Task<UserDTO> GetUserByIdAsync(string userName);
+        IObservable<UserDTO[]> GetUsers();
+        IObservable<UserDTO> GetUserByIdAsync(string userName);
         Task<bool> CreateOrUpdateUserAsync(UserDTO user);
         Task<bool> DeleteUserAsync(string id);
     }
@@ -60,21 +61,31 @@ namespace LabraryApi.Controllers {
         }
 
         public async Task<bool> CreateOrUpdateUserAsync(UserDTO user) {
-            await _users.ReplaceOneAsync(e => e.id == user.id, user, new ReplaceOptions { IsUpsert=true });
+            await Observable.FromAsync(() => _users.ReplaceOneAsync(e => e.id == user.id, user, new ReplaceOptions { IsUpsert=true }));
             return true;
         }
 
         public async Task<bool> DeleteUserAsync(string id) {
-            await _users.DeleteOneAsync(new BsonDocument(nameof(UserDTO.id), id));
-            return true;
+            await Observable.FromAsync(() => _users.DeleteOneAsync(new BsonDocument(nameof(UserDTO.id), id)));
+            return true; 
         }
 
-        public async Task<UserDTO> GetUserByIdAsync(string userName) {
-            return (await _users.FindAsync(user => user.username == userName)).First();
+        public IObservable<UserDTO> GetUserByIdAsync(string userName) {
+            return Observable.Create<UserDTO>(async observer =>
+            {
+                var entities = (await _users.FindAsync(user => user.username == userName)).First();
+                observer.OnNext(entities);
+                observer.OnCompleted();
+            }); 
         }
 
-        public async Task<List<UserDTO>> GetUsers() {
-            return (await _users.FindAsync(v => true)).ToList();
+        public IObservable<UserDTO[]> GetUsers() {
+            return Observable.Create<UserDTO[]>(async observer =>
+            {
+                var entities = (await _users.FindAsync(v => true)).ToList();
+                observer.OnNext(entities.ToArray());
+                observer.OnCompleted();
+            });
         }
 
     }

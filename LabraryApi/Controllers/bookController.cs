@@ -2,6 +2,7 @@ using LabraryApi.Classes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Reactive.Linq;
 
 namespace LabraryApi.Controllers {
     [ApiController]
@@ -18,7 +19,7 @@ namespace LabraryApi.Controllers {
 
         [HttpGet()]
         [Route("getBooks")]
-        public async Task<IEnumerable<BookDTO>> getBooks() {
+        public async Task<BookDTO[]> getBooks() {
             _logger.LogInformation("Received request to get all books");
             var books = await bookRepository.GetBooks();
             _logger.LogInformation("Retrieved {} books", books.Count());
@@ -41,14 +42,14 @@ namespace LabraryApi.Controllers {
         [Route("createOrUpdate")]
         public async Task<BookDTO> createOrUpdate(BookDTO bookDTO) {
             await bookRepository.CreateOrUpdateBookAsync(bookDTO);
-            _logger.LogInformation("Book created or updated successfully: {}", bookDTO);
+            _logger.LogInformation("Book created or updated successfully: {}", bookDTO.id);
             return bookDTO;
         }
     }
 
     internal interface IbookRepository {
-        Task<List<BookDTO>> GetBooks();
-        Task<BookDTO> GetBookByIdAsync(string name);
+        IObservable<BookDTO[]> GetBooks();
+        IObservable<BookDTO> GetBookByIdAsync(string name);
         Task<bool> CreateOrUpdateBookAsync(BookDTO book);
         Task<bool> DeleteBookAsync(string id);
     }
@@ -60,21 +61,32 @@ namespace LabraryApi.Controllers {
         }
 
         public async Task<bool> CreateOrUpdateBookAsync(BookDTO book) {
-            await _books.ReplaceOneAsync(e => e.id == book.id, book, new ReplaceOptions { IsUpsert=true });
+            await Observable.FromAsync(() => _books.ReplaceOneAsync(e => e.id == book.id, book, new ReplaceOptions { IsUpsert=true })); 
             return true;
         }
 
         public async Task<bool> DeleteBookAsync(string id) {
-            await _books.DeleteOneAsync(new BsonDocument(nameof(BookDTO.id), id));
+            await Observable.FromAsync(() => _books.DeleteOneAsync(new BsonDocument(nameof(BookDTO.id), id)));
             return true;
         }
 
-        public async Task<BookDTO> GetBookByIdAsync(string name) {
-            return (await _books.FindAsync(book => book.name == name)).First();
+        public IObservable<BookDTO> GetBookByIdAsync(string name) {
+            return Observable.Create<BookDTO>(async observer =>
+            {
+
+                var entities = (await _books.FindAsync(book => book.name == name)).First();
+                observer.OnNext(entities);
+                observer.OnCompleted();
+            }); 
         }
 
-        public async Task<List<BookDTO>> GetBooks() {
-            return (await _books.FindAsync(v => true)).ToList();
+        public IObservable<BookDTO[]> GetBooks() {
+            return Observable.Create<BookDTO[]>(async observer =>
+            {
+                var entities = await (await _books.FindAsync(v => true)).ToListAsync();
+                observer.OnNext(entities.ToArray());
+                observer.OnCompleted();
+            });
         }
 
         // Implement other methods following the async pattern
