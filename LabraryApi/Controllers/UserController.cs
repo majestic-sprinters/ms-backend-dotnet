@@ -19,24 +19,29 @@ namespace LabraryApi.Controllers {
         [HttpGet()]
         [Route("getAllUsers")]
         public async Task<IEnumerable<UserDTO>> getAllUsers() {
+            _logger.LogInformation("Received request to get all users");
             var users = await userRepository.GetUsers();
+            _logger.LogInformation("Retrieved {} users", users.Count());
             return users;
         }
         [HttpGet()]
         [Route("getUserByUsername")]
         public async Task<UserDTO> getUserByUsername(string username) {
             var user = await userRepository.GetUserByIdAsync(username);
+            _logger.LogInformation("Retrieved user: {}", user);
             return user;
         }
         [HttpPost()]
         [Route("deleteUserByUsername")]
         public async Task deleteUserByUsername(string username) {
             var user = await userRepository.DeleteUserAsync(username);
+            _logger.LogInformation("User deleted successfully with username: {}", username);
         }
         [HttpPost()]
         [Route("createOrUpdate")]
         public async Task<UserDTO> createOrUpdate(UserDTO userDTO) {
             await userRepository.CreateOrUpdateUserAsync(userDTO);
+            _logger.LogInformation("User created or updated successfully: {}", userDTO);
             return userDTO;
         }
     }

@@ -19,24 +19,29 @@ namespace LabraryApi.Controllers {
         [HttpGet()]
         [Route("getBooks")]
         public async Task<IEnumerable<BookDTO>> getBooks() {
+            _logger.LogInformation("Received request to get all books");
             var books = await bookRepository.GetBooks();
+            _logger.LogInformation("Retrieved {} books", books.Count());
             return books;
         }
         [HttpGet()]
         [Route("getBookByName")]
         public async Task<BookDTO> getBookByName(string name) {
             var book = await bookRepository.GetBookByIdAsync(name);
+            _logger.LogInformation("Retrieved book: {}", book);
             return book;
         }
         [HttpPost()]
         [Route("deleteBookByName")]
         public async Task deleteBookByName(string name) {
             var book = await bookRepository.DeleteBookAsync(name);
+            _logger.LogInformation("Book deleted successfully with name: {}", name);
         }
         [HttpPost()]
         [Route("createOrUpdate")]
         public async Task<BookDTO> createOrUpdate(BookDTO bookDTO) {
             await bookRepository.CreateOrUpdateBookAsync(bookDTO);
+            _logger.LogInformation("Book created or updated successfully: {}", bookDTO);
             return bookDTO;
         }
     }
