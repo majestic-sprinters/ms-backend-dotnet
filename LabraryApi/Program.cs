@@ -1,15 +1,29 @@
 using LabraryApi.DataSchemas;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection(MongoDbSettings.ConnName));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("MyAllowAnyOriginPolicy",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyHeader()
+                   .AllowAnyMethod();
+        });
+});
 builder.Services.AddSingleton<IMongoDatabase>(sp =>
 {
-    var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
-    var client = new MongoClient(settings.ConnectionString);
-    return client.GetDatabase(settings.DatabaseName);
+    var databaseName = Environment.GetEnvironmentVariable("MONGO_DB");
+    var host = Environment.GetEnvironmentVariable("MONGO_HOST");
+    var port = Environment.GetEnvironmentVariable("MONGO_PORT");
+    var connectionString = $"{host}:{port}";
+    var client = new MongoClient(connectionString);
+    return client.GetDatabase(databaseName);
 });
 // Add services to the container.
 
@@ -31,5 +45,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseCors("MyAllowAnyOriginPolicy");
 
 app.Run();

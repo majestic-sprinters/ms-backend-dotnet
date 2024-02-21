@@ -5,13 +5,13 @@ using MongoDB.Driver;
 
 namespace LabraryApi.Controllers {
     [ApiController]
-    [Route("[controller]")]
-    public class bookController : ControllerBase {
+    [Route("api/v1/book")]
+    public class BookController : ControllerBase {
 
-        private readonly ILogger<bookController> _logger;
+        private readonly ILogger<BookController> _logger;
         private readonly BookRepository bookRepository;
 
-        public bookController(ILogger<bookController> logger, IMongoDatabase mongoDatabase) {
+        public BookController(ILogger<BookController> logger, IMongoDatabase mongoDatabase) {
             _logger = logger;
             bookRepository=new(mongoDatabase);
         }
