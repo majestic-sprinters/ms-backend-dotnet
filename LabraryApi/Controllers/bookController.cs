@@ -4,6 +4,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Reactive.Linq;
 
+
 namespace LabraryApi.Controllers {
     [ApiController]
     [Route("api/v1/book")]
@@ -65,6 +66,7 @@ namespace LabraryApi.Controllers {
             return true;
         }
 
+ 
         public async Task<bool> DeleteBookAsync(string id) {
             await Observable.FromAsync(() => _books.DeleteOneAsync(new BsonDocument(nameof(BookDTO.id), id)));
             return true;
