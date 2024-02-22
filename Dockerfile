@@ -7,11 +7,11 @@ COPY . ./
 RUN dotnet restore
 RUN dotnet publish -c Release -o out
 
-
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
 # Final stage/image
 FROM mcr.microsoft.com/dotnet/aspnet:7.0
 WORKDIR /app
-EXPOSE 8080
 
 # Copy the build artifacts from the build stage to the final stage
 COPY --from=build /app/out .
