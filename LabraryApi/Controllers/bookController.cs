@@ -41,7 +41,7 @@ namespace LabraryApi.Controllers {
         }
         [HttpGet()]
         [Route("getBookByName")]
-        public async Task<BookDTO> getBookByName(string name) {
+        public async Task<BookDTO?> getBookByName(string name) {
             var book = await _cache.GetOrCreateAsync(nameof(getBookByName) + name, async e =>
             {
                 var book = await bookRepository.GetBookByIdAsync(name);
@@ -56,7 +56,7 @@ namespace LabraryApi.Controllers {
             var book = await bookRepository.DeleteBookAsync(name);
             _cache.Remove(nameof(getBookByName) + name);
             var books = await getAllBooks();
-            _cache.Set(nameof(getBooks), books.Where(v => v.name != name), new MemoryCacheEntryOptions {
+            _cache.Set(nameof(getBooks), books.Where(v => v.name != name).ToArray(), new MemoryCacheEntryOptions {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
             });
             _logger.LogInformation("Book deleted successfully with name: {}", name);
@@ -69,14 +69,19 @@ namespace LabraryApi.Controllers {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
             });
             var books = await getAllBooks();
-
-            _cache.Set(nameof(getBooks), books.Select(v =>
-            {
-                if (v.name == bookDTO.name) {
-                    v = bookDTO;
-                }
-                return v;
-            }).ToArray(), new MemoryCacheEntryOptions {
+            if (books.Contains(bookDTO)) {
+                books = books.Select(v =>
+                {
+                    if (v.name == bookDTO.name) {
+                        v = bookDTO;
+                    }
+                    return v;
+                }).ToArray()
+            ;
+            } else {
+                books = books.Append(bookDTO).ToArray();
+            }
+            _cache.Set(nameof(getBooks), books, new MemoryCacheEntryOptions {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
             });
 
@@ -104,8 +109,8 @@ namespace LabraryApi.Controllers {
         }
 
  
-        public async Task<bool> DeleteBookAsync(string id) {
-            await Observable.FromAsync(() => _books.DeleteOneAsync(new BsonDocument(nameof(BookDTO.id), id)));
+        public async Task<bool> DeleteBookAsync(string name) {
+            var result = await Observable.FromAsync(() => _books.DeleteOneAsync(new BsonDocument(nameof(BookDTO.name), name)));
             return true;
         }
 
@@ -113,7 +118,7 @@ namespace LabraryApi.Controllers {
             return Observable.Create<BookDTO>(async observer =>
             {
 
-                var entities = (await _books.FindAsync(book => book.name == name)).First();
+                var entities = (await _books.FindAsync(book => book.name == name)).FirstOrDefault() ?? null;
                 observer.OnNext(entities);
                 observer.OnCompleted();
             });
