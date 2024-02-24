@@ -39,10 +39,6 @@ jobs:
         working-directory: ${{ secrets.VM_WORKING_DIR }}
         run: docker compose -f ${{ secrets.VM_COMPOSE_FILE }} pull ms-backend
 
-      - name: Shutdown existing stack
-        working-directory: ${{ secrets.VM_WORKING_DIR }}
-        run: docker stack rm ms-deploy
-
       - name: Deploy docker stack
         working-directory: ${{ secrets.VM_WORKING_DIR }}
         run: docker stack deploy -c ${{ secrets.VM_COMPOSE_FILE }} ms-deploy
