@@ -1,11 +1,9 @@
-using Amazon.Runtime.Internal.Util;
 using LabraryApi.Classes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Reactive.Linq;
-using System.Xml.Linq;
 
 
 namespace LabraryApi.Controllers {
@@ -85,7 +83,7 @@ namespace LabraryApi.Controllers {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
             });
 
-            _logger.LogInformation("Book created or updated successfully: {}", bookDTO.id);
+            _logger.LogInformation("Book created or updated successfully: {}", bookDTO.name);
             return bookDTO;
         }
     }
@@ -104,7 +102,15 @@ namespace LabraryApi.Controllers {
         }
 
         public async Task<bool> CreateOrUpdateBookAsync(BookDTO book) {
-            await Observable.FromAsync(() => _books.ReplaceOneAsync(e => e.id == book.id, book, new ReplaceOptions { IsUpsert=true }));
+            var filter = Builders<BookDTO>.Filter.Eq(p => p.name, book.name);
+            var update = Builders<BookDTO>.Update
+                .Set(p => p.description, book.description)
+                .Set(p => p.author, book.author)
+                .Set(p => p.year, book.year)
+                .Set(p => p.publisher, book.publisher);
+            var options = new UpdateOptions { IsUpsert = true };
+
+            await Observable.FromAsync(() => _books.UpdateOneAsync(filter, update, options));
             return true;
         }
 
