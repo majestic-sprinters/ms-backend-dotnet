@@ -103,7 +103,13 @@ namespace LabraryApi.Controllers {
         }
 
         public async Task<bool> CreateOrUpdateUserAsync(UserDTO user) {
-            await Observable.FromAsync(() => _users.ReplaceOneAsync(e => e.id == user.id, user, new ReplaceOptions { IsUpsert=true }));
+            var filter = Builders<UserDTO>.Filter.Eq(p => p.username, user.username);
+            var update = Builders<UserDTO>.Update
+                .Set(p => p.fio, user.fio)
+                .Set(p => p.gender, user.gender);
+            var options = new UpdateOptions { IsUpsert = true };
+
+            await Observable.FromAsync(() => _users.UpdateOneAsync(filter, update, options));
             return true;
         }
 
