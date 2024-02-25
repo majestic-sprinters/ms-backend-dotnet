@@ -19,9 +19,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddSingleton<IMongoDatabase>(sp =>
 {
     var databaseName = Environment.GetEnvironmentVariable("MONGO_DB");
-    var host = Environment.GetEnvironmentVariable("MONGO_HOST");
-    var port = Environment.GetEnvironmentVariable("MONGO_PORT");
-    var connectionString = $"{host}:{port}";
+    var connectionString = Environment.GetEnvironmentVariable("MONGO_CONN");
     var client = new MongoClient(connectionString);
     return client.GetDatabase(databaseName);
 });
